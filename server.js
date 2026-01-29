@@ -11,6 +11,20 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
+function isLocalRequest(req) {
+    const host = (req.hostname || '').toLowerCase();
+    const ip = (req.ip || '').replace('::ffff:', '');
+    const localHosts = new Set(['localhost', '127.0.0.1', '::1']);
+    return localHosts.has(host) || localHosts.has(ip);
+}
+
+function requireLocal(req, res, next) {
+    if (!isLocalRequest(req)) {
+        return res.status(401).json({ success: false, message: 'Teacher access only.' });
+    }
+    return next();
+}
+
 const dataDir = path.join(__dirname, 'data');
 const formsDir = path.join(dataDir, 'forms');
 const answersDir = path.join(dataDir, 'answers');
@@ -95,7 +109,7 @@ async function listForms() {
     return forms.filter(Boolean);
 }
 
-app.post('/api/forms', async (req, res) => {
+app.post('/api/forms', requireLocal, async (req, res) => {
     try {
         const errorMessage = validateFormPayload(req.body);
         if (errorMessage) {
@@ -116,7 +130,7 @@ app.post('/api/forms', async (req, res) => {
     }
 });
 
-app.post('/api/forms/upload', async (req, res) => {
+app.post('/api/forms/upload', requireLocal, async (req, res) => {
     try {
         const errorMessage = validateFormPayload(req.body);
         if (errorMessage) {
@@ -131,7 +145,7 @@ app.post('/api/forms/upload', async (req, res) => {
     }
 });
 
-app.get('/api/forms', async (req, res) => {
+app.get('/api/forms', requireLocal, async (req, res) => {
     try {
         const activeId = await getActiveFormId();
         const forms = await listForms();
@@ -164,7 +178,7 @@ app.get('/api/forms/active', async (req, res) => {
     }
 });
 
-app.get('/api/forms/:id', async (req, res) => {
+app.get('/api/forms/:id', requireLocal, async (req, res) => {
     try {
         const form = await readJson(path.join(formsDir, `${req.params.id}.json`), null);
         if (!form) {
@@ -176,7 +190,7 @@ app.get('/api/forms/:id', async (req, res) => {
     }
 });
 
-app.post('/api/forms/:id/activate', async (req, res) => {
+app.post('/api/forms/:id/activate', requireLocal, async (req, res) => {
     try {
         const form = await readJson(path.join(formsDir, `${req.params.id}.json`), null);
         if (!form) {
@@ -228,7 +242,7 @@ app.post('/api/answers', async (req, res) => {
     }
 });
 
-app.get('/api/answers', async (req, res) => {
+app.get('/api/answers', requireLocal, async (req, res) => {
     try {
         if (req.query.formId) {
             const answers = await readJson(path.join(answersDir, `${req.query.formId}.json`), []);
@@ -246,7 +260,7 @@ app.get('/api/answers', async (req, res) => {
     }
 });
 
-app.get('/api/dashboard', async (req, res) => {
+app.get('/api/dashboard', requireLocal, async (req, res) => {
     try {
         const forms = await listForms();
         const answersByForm = {};
