@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Answer Questionnaire · Fast Diagnostic Class</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <section class="hero">
+            <a class="badge" href="/">← Back to home</a>
+            <h1>Answer the Questionnaire</h1>
+            <p>Fill out the active questionnaire. Responses are saved locally and sent to the teacher dashboard.</p>
+        </section>
+
+        <section class="card" id="formCard">
+            <h2 class="section-title" id="formTitle">Loading questionnaire...</h2>
+            <form id="answerForm"></form>
+            <div class="inline-actions" style="margin-top: 16px;">
+                <button class="primary" type="submit" form="answerForm">Submit Answers</button>
+            </div>
+            <div id="answerNotice" class="notice" style="display: none; margin-top: 16px;"></div>
+        </section>
+    </div>
+
+    <script>
+        const answerForm = document.getElementById('answerForm');
+        const formTitle = document.getElementById('formTitle');
+        const answerNotice = document.getElementById('answerNotice');
+        let activeForm = null;
+
+        function showNotice(message, type) {
+            answerNotice.textContent = message;
+            answerNotice.className = `notice ${type}`;
+            answerNotice.style.display = 'block';
+        }
+
+        function renderForm(form) {
+            formTitle.textContent = form.title;
+            answerForm.innerHTML = `
+                <div class="form-group">
+                    <label for="studentName">Student name (optional)</label>
+                    <input type="text" id="studentName" placeholder="Anonymous">
+                </div>
+                ${form.questions.map((question, index) => {
+                    const options = [...question.alternatives.map((alt, altIndex) => ({ label: alt, value: altIndex }))];
+                    if (question.idk) {
+                        options.push({ label: "I don't know", value: 'null' });
+                    }
+                    return `
+                        <div class="question-card">
+                            <div class="question-header">
+                                <strong>Question ${index + 1}</strong>
+                                ${question.tags && question.tags.length ? `<span class="muted">${question.tags.join(', ')}</span>` : ''}
+                            </div>
+                            <p>${question.description}</p>
+                            <div class="list">
+                                ${options.map(option => `
+                                    <label class="list-item" style="justify-content: flex-start;">
+                                        <input type="radio" name="q-${index}" value="${option.value}">
+                                        <span>${option.label}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+        }
+
+        async function loadActiveForm() {
+            const response = await fetch('/api/forms/active');
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                formTitle.textContent = 'No active questionnaire found.';
+                answerForm.innerHTML = '<p class="muted">Ask the teacher to activate a questionnaire in the create page.</p>';
+                return;
+            }
+            activeForm = result.data;
+            renderForm(activeForm);
+        }
+
+        answerForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!activeForm) return;
+
+            const nameValue = document.getElementById('studentName').value.trim();
+            const answers = activeForm.questions.map((_, index) => {
+                const selected = answerForm.querySelector(`input[name="q-${index}"]:checked`);
+                if (!selected) return null;
+                return selected.value === 'null' ? null : parseInt(selected.value, 10);
+            });
+
+            const payload = {
+                formId: activeForm.id,
+                name: nameValue || 'Anonymous',
+                answers
+            };
+
+            const response = await fetch('/api/answers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                showNotice('Answers submitted successfully.', 'success');
+                answerForm.reset();
+            } else {
+                showNotice(result.message || 'Unable to submit answers.', 'error');
+            }
+        });
+
+        loadActiveForm();
+    </script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard · Fast Diagnostic Class</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <section class="hero">
+            <a class="badge" href="/">← Back to home</a>
+            <h1>Live Dashboard</h1>
+            <p>Review submissions, score distributions, and tag-level performance for every questionnaire.</p>
+        </section>
+
+        <section class="card">
+            <h2 class="section-title">Select Questionnaire</h2>
+            <div class="form-group">
+                <label for="formSelector">Questionnaire</label>
+                <select id="formSelector"></select>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2 class="section-title">Key Metrics</h2>
+            <div class="form-grid" id="metricsGrid"></div>
+        </section>
+
+        <section class="card">
+            <h2 class="section-title">Score Distribution</h2>
+            <div class="chart-panel">
+                <canvas id="scoreChart"></canvas>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2 class="section-title">Tag Performance</h2>
+            <div class="chart-panel">
+                <canvas id="tagChart"></canvas>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2 class="section-title">Response History</h2>
+            <div style="overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Score</th>
+                            <th>Correct</th>
+                            <th>Submitted</th>
+                        </tr>
+                    </thead>
+                    <tbody id="responsesTable"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let dashboardData = null;
+        let scoreChart = null;
+        let tagChart = null;
+
+        function calculateScores(form, responses) {
+            const totalWeight = form.questions.reduce((sum, q) => sum + (q.weight ?? 1), 0) || 1;
+            return responses.map(response => {
+                let earned = 0;
+                let correctCount = 0;
+                form.questions.forEach((question, index) => {
+                    const answer = response.answers[index];
+                    if (answer === question.correct) {
+                        earned += question.weight ?? 1;
+                        correctCount += 1;
+                    }
+                });
+                const score = Math.round((earned / totalWeight) * 1000) / 10;
+                return { ...response, score, correctCount };
+            });
+        }
+
+        function calculateTagStats(form, responses) {
+            const tagBuckets = {};
+            form.questions.forEach((question, index) => {
+                const tags = question.tags && question.tags.length ? question.tags : ['untagged'];
+                tags.forEach(tag => {
+                    if (!tagBuckets[tag]) {
+                        tagBuckets[tag] = { total: 0, correct: 0 };
+                    }
+                    responses.forEach(response => {
+                        tagBuckets[tag].total += 1;
+                        if (response.answers[index] === question.correct) {
+                            tagBuckets[tag].correct += 1;
+                        }
+                    });
+                });
+            });
+            return Object.entries(tagBuckets).map(([tag, stats]) => ({
+                tag,
+                accuracy: stats.total ? Math.round((stats.correct / stats.total) * 1000) / 10 : 0
+            }));
+        }
+
+        function renderMetrics(scoredResponses) {
+            const metricsGrid = document.getElementById('metricsGrid');
+            if (scoredResponses.length === 0) {
+                metricsGrid.innerHTML = '<p class="muted">No responses yet.</p>';
+                return;
+            }
+            const scores = scoredResponses.map(r => r.score);
+            const average = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
+            const highest = Math.max(...scores).toFixed(1);
+            const lowest = Math.min(...scores).toFixed(1);
+            const last = scoredResponses[0]?.submittedAt ? new Date(scoredResponses[0].submittedAt).toLocaleString() : 'N/A';
+
+            metricsGrid.innerHTML = `
+                <div class="card">
+                    <div class="muted">Total Responses</div>
+                    <h2>${scoredResponses.length}</h2>
+                </div>
+                <div class="card">
+                    <div class="muted">Average Score</div>
+                    <h2>${average}%</h2>
+                </div>
+                <div class="card">
+                    <div class="muted">Highest Score</div>
+                    <h2>${highest}%</h2>
+                </div>
+                <div class="card">
+                    <div class="muted">Lowest Score</div>
+                    <h2>${lowest}%</h2>
+                </div>
+                <div class="card">
+                    <div class="muted">Last Submission</div>
+                    <h2 style="font-size: 1.2rem;">${last}</h2>
+                </div>
+            `;
+        }
+
+        function renderScoreChart(scoredResponses) {
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            const labels = scoredResponses.map(response => response.name);
+            const data = scoredResponses.map(response => response.score);
+
+            if (scoreChart) scoreChart.destroy();
+            scoreChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Scores',
+                        data,
+                        backgroundColor: 'rgba(63, 185, 177, 0.6)',
+                        borderColor: 'rgba(31, 138, 132, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTagChart(tagStats) {
+            const ctx = document.getElementById('tagChart').getContext('2d');
+            const labels = tagStats.map(stat => stat.tag);
+            const data = tagStats.map(stat => stat.accuracy);
+
+            if (tagChart) tagChart.destroy();
+            tagChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Accuracy %',
+                        data,
+                        tension: 0.3,
+                        borderColor: 'rgba(239, 71, 111, 1)',
+                        backgroundColor: 'rgba(239, 71, 111, 0.2)',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderResponsesTable(scoredResponses) {
+            const tbody = document.getElementById('responsesTable');
+            if (scoredResponses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="muted">No responses submitted yet.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = scoredResponses.map(response => `
+                <tr>
+                    <td>${response.name}</td>
+                    <td>${response.score}%</td>
+                    <td>${response.correctCount}/${response.answers.length}</td>
+                    <td>${new Date(response.submittedAt).toLocaleString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateDashboard(formId) {
+            const form = dashboardData.forms.find(item => item.id === formId);
+            if (!form) return;
+            const responses = dashboardData.answersByForm[formId] || [];
+            const scoredResponses = calculateScores(form, responses).sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+
+            renderMetrics(scoredResponses);
+            renderScoreChart(scoredResponses);
+            const tagStats = calculateTagStats(form, responses);
+            renderTagChart(tagStats);
+            renderResponsesTable(scoredResponses);
+        }
+
+        async function loadDashboard() {
+            const response = await fetch('/api/dashboard');
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                return;
+            }
+            dashboardData = result.data;
+            const selector = document.getElementById('formSelector');
+            selector.innerHTML = dashboardData.forms.map(form => `
+                <option value="${form.id}" ${form.id === dashboardData.activeFormId ? 'selected' : ''}>${form.title}</option>
+            `).join('');
+            if (dashboardData.forms.length === 0) {
+                selector.innerHTML = '<option>No questionnaires yet</option>';
+                return;
+            }
+            updateDashboard(selector.value);
+        }
+
+        document.getElementById('formSelector').addEventListener('change', event => {
+            updateDashboard(event.target.value);
+        });
+
+        loadDashboard();
+    </script>
+</body>
+</html>

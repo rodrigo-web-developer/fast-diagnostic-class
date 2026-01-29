@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Questionnaire · Fast Diagnostic Class</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <section class="hero">
+            <a class="badge" href="/">← Back to home</a>
+            <h1>Create a Questionnaire</h1>
+            <p>Build questions, set the correct answers, and publish the active questionnaire for students. You can also upload a JSON file to prefill everything.</p>
+        </section>
+
+        <section class="card">
+            <h2 class="section-title">Questionnaire Settings</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="formTitle">Title</label>
+                    <input type="text" id="formTitle" placeholder="Basics of Math" required>
+                </div>
+                <div class="form-group">
+                    <label for="formUpload">Upload JSON (optional)</label>
+                    <input type="file" id="formUpload" accept="application/json">
+                </div>
+            </div>
+            <div class="inline-actions" style="margin-top: 16px;">
+                <button class="secondary" id="addQuestionBtn" type="button">Add Question</button>
+                <label class="inline-actions" style="align-items: center;">
+                    <input type="checkbox" id="makeActive" checked>
+                    <span class="muted">Make active after saving</span>
+                </label>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2 class="section-title">Questions</h2>
+            <div id="questionList"></div>
+        </section>
+
+        <section class="card">
+            <div class="inline-actions">
+                <button class="primary" id="saveFormBtn" type="button">Save Questionnaire</button>
+                <button class="secondary" id="resetFormBtn" type="button">Reset Builder</button>
+            </div>
+            <div id="formNotice" class="notice" style="display: none; margin-top: 16px;"></div>
+        </section>
+
+        <section class="card">
+            <h2 class="section-title">Existing Questionnaires</h2>
+            <div id="formList" class="list"></div>
+        </section>
+    </div>
+
+    <script>
+        const questionList = document.getElementById('questionList');
+        const formNotice = document.getElementById('formNotice');
+        const formUpload = document.getElementById('formUpload');
+        const formTitle = document.getElementById('formTitle');
+
+        function showNotice(message, type) {
+            formNotice.textContent = message;
+            formNotice.className = `notice ${type}`;
+            formNotice.style.display = 'block';
+        }
+
+        function createQuestionData() {
+            return {
+                description: '',
+                alternatives: ['', ''],
+                correct: 0,
+                tags: [],
+                weight: 1,
+                idk: true
+            };
+        }
+
+        function renderQuestions(questions) {
+            questionList.innerHTML = '';
+            questions.forEach((question, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'question-card';
+                wrapper.dataset.index = index;
+                wrapper.innerHTML = `
+                    <div class="question-header">
+                        <strong>Question ${index + 1}</strong>
+                        <button class="secondary" data-remove-question type="button">Remove</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea data-field="description" placeholder="Question text">${question.description || ''}</textarea>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Weight</label>
+                            <input type="number" min="0" step="0.1" data-field="weight" value="${question.weight ?? 1}">
+                        </div>
+                        <div class="form-group">
+                            <label>Tags (comma separated)</label>
+                            <input type="text" data-field="tags" value="${(question.tags || []).join(', ')}" placeholder="math, logic">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Alternatives</label>
+                        <div class="list" data-alternatives>
+                            ${question.alternatives.map((alt, altIndex) => `
+                                <div class="list-item">
+                                    <input type="text" data-alt-index="${altIndex}" value="${alt}">
+                                    <button class="secondary" data-remove-alt type="button">Remove</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="secondary" data-add-alt type="button" style="margin-top: 10px;">Add alternative</button>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Correct Answer</label>
+                            <select data-field="correct">
+                                ${question.alternatives.map((_, altIndex) => `
+                                    <option value="${altIndex}" ${altIndex === (question.correct ?? 0) ? 'selected' : ''}>Alternative ${altIndex + 1}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Include "I Don't Know" option</label>
+                            <select data-field="idk">
+                                <option value="true" ${question.idk ? 'selected' : ''}>Yes</option>
+                                <option value="false" ${!question.idk ? 'selected' : ''}>No</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+                questionList.appendChild(wrapper);
+            });
+        }
+
+        let questions = [createQuestionData()];
+        renderQuestions(questions);
+
+        function syncQuestionsFromDom() {
+            const updated = [];
+            const questionCards = questionList.querySelectorAll('.question-card');
+            questionCards.forEach(card => {
+                const description = card.querySelector('[data-field="description"]').value.trim();
+                const weight = parseFloat(card.querySelector('[data-field="weight"]').value || '1');
+                const tagsRaw = card.querySelector('[data-field="tags"]').value || '';
+                const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
+                const alternatives = Array.from(card.querySelectorAll('[data-alt-index]'))
+                    .map(input => input.value.trim())
+                    .filter(Boolean);
+                const correct = parseInt(card.querySelector('[data-field="correct"]').value, 10) || 0;
+                const idkValue = card.querySelector('[data-field="idk"]').value === 'true';
+                updated.push({
+                    description,
+                    weight: Number.isFinite(weight) ? weight : 1,
+                    tags,
+                    alternatives,
+                    correct,
+                    idk: idkValue
+                });
+            });
+            questions = updated;
+        }
+
+        function refreshCorrectOptions(card) {
+            const altInputs = card.querySelectorAll('[data-alt-index]');
+            const select = card.querySelector('[data-field="correct"]');
+            const current = parseInt(select.value, 10) || 0;
+            select.innerHTML = '';
+            altInputs.forEach((_, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `Alternative ${index + 1}`;
+                if (index === current) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        }
+
+        document.getElementById('addQuestionBtn').addEventListener('click', () => {
+            syncQuestionsFromDom();
+            questions.push(createQuestionData());
+            renderQuestions(questions);
+        });
+
+        document.getElementById('resetFormBtn').addEventListener('click', () => {
+            questions = [createQuestionData()];
+            formTitle.value = '';
+            renderQuestions(questions);
+            formNotice.style.display = 'none';
+        });
+
+        questionList.addEventListener('click', event => {
+            const card = event.target.closest('.question-card');
+            if (!card) return;
+            const index = parseInt(card.dataset.index, 10);
+
+            if (event.target.matches('[data-remove-question]')) {
+                syncQuestionsFromDom();
+                questions.splice(index, 1);
+                if (questions.length === 0) {
+                    questions.push(createQuestionData());
+                }
+                renderQuestions(questions);
+            }
+
+            if (event.target.matches('[data-add-alt]')) {
+                syncQuestionsFromDom();
+                questions[index].alternatives.push('');
+                renderQuestions(questions);
+            }
+
+            if (event.target.matches('[data-remove-alt]')) {
+                const altIndex = parseInt(event.target.parentElement.querySelector('[data-alt-index]').dataset.altIndex, 10);
+                syncQuestionsFromDom();
+                questions[index].alternatives.splice(altIndex, 1);
+                if (questions[index].alternatives.length < 2) {
+                    questions[index].alternatives.push('');
+                }
+                renderQuestions(questions);
+            }
+        });
+
+        questionList.addEventListener('input', event => {
+            const card = event.target.closest('.question-card');
+            if (!card) return;
+            if (event.target.matches('[data-alt-index]')) {
+                refreshCorrectOptions(card);
+            }
+        });
+
+        formUpload.addEventListener('change', event => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const data = JSON.parse(reader.result);
+                    if (!data || !Array.isArray(data.questions)) {
+                        throw new Error('Invalid JSON format. Expected {"title", "questions"}.');
+                    }
+                    formTitle.value = data.title || '';
+                    questions = data.questions.map(q => ({
+                        description: q.description || '',
+                        alternatives: Array.isArray(q.alternatives) && q.alternatives.length >= 2 ? q.alternatives : ['', ''],
+                        correct: Number.isInteger(q.correct) ? q.correct : 0,
+                        tags: Array.isArray(q.tags) ? q.tags : [],
+                        weight: q.weight ?? 1,
+                        idk: q.idk !== false
+                    }));
+                    if (questions.length === 0) {
+                        questions.push(createQuestionData());
+                    }
+                    renderQuestions(questions);
+                    showNotice('JSON loaded successfully.', 'success');
+                } catch (error) {
+                    showNotice(`Upload failed: ${error.message}`, 'error');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        async function fetchForms() {
+            const response = await fetch('/api/forms');
+            const result = await response.json();
+            return result.data || [];
+        }
+
+        async function renderFormList() {
+            const container = document.getElementById('formList');
+            const forms = await fetchForms();
+            if (forms.length === 0) {
+                container.innerHTML = '<p class="muted">No questionnaires created yet.</p>';
+                return;
+            }
+            container.innerHTML = forms.map(form => `
+                <div class="list-item">
+                    <div>
+                        <strong>${form.title}</strong>
+                        <div class="muted">${form.questionCount} questions · Created ${new Date(form.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div class="inline-actions">
+                        ${form.active ? '<span class="badge">Active</span>' : `<button class="secondary" data-activate="${form.id}" type="button">Set Active</button>`}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('formList').addEventListener('click', async event => {
+            const button = event.target.closest('[data-activate]');
+            if (!button) return;
+            const formId = button.dataset.activate;
+            const response = await fetch(`/api/forms/${formId}/activate`, { method: 'POST' });
+            const result = await response.json();
+            if (result.success) {
+                showNotice('Active questionnaire updated.', 'success');
+                await renderFormList();
+            } else {
+                showNotice(result.message || 'Unable to activate questionnaire.', 'error');
+            }
+        });
+
+        document.getElementById('saveFormBtn').addEventListener('click', async () => {
+            syncQuestionsFromDom();
+            const title = formTitle.value.trim();
+            if (!title) {
+                showNotice('Please add a questionnaire title.', 'error');
+                return;
+            }
+
+            const preparedQuestions = questions.map((q, index) => ({
+                description: q.description,
+                alternatives: q.alternatives,
+                correct: q.correct,
+                tags: q.tags,
+                weight: q.weight,
+                idk: q.idk
+            }));
+
+            const payload = {
+                title,
+                questions: preparedQuestions,
+                makeActive: document.getElementById('makeActive').checked
+            };
+
+            const response = await fetch('/api/forms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                showNotice('Questionnaire saved successfully.', 'success');
+                await renderFormList();
+            } else {
+                showNotice(result.message || 'Failed to save questionnaire.', 'error');
+            }
+        });
+
+        renderFormList();
+    </script>
+</body>
+</html>
