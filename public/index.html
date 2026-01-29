@@ -401,12 +401,12 @@
 
                 const result = await response.json();
 
-                if (result.success) {
+                if (response.ok && result.success) {
                     showMessage(`✓ Data saved successfully! File: ${result.filename}`, 'success');
                     document.getElementById('diagnosticForm').reset();
                     updateDashboard();
                 } else {
-                    showMessage('✗ Error saving data to server', 'error');
+                    showMessage(`✗ Error: ${result.message || 'Failed to save data'}`, 'error');
                 }
             } catch (error) {
                 showMessage('✗ Error connecting to server: ' + error.message, 'error');
