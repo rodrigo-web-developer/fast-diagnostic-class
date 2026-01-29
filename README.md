@@ -37,10 +37,10 @@ Create form:
 ```json
 {
     "questions": [{
-        "idk": true, // add I Don't Know alternative for better precision on results
+        "idk": true, // add "I Don't Know" alternative for better precision on results
         "alternatives": ["2", "4", "8", "NDA"],
         "description": "How much is 2 + 2?",
-        "correct": 1, // index based answer,
+        "correct": 1, // index-based answer
         "tags": ["math", "sum"] // tag answer for better dashboard results
     },{
         "idk": true,
@@ -53,7 +53,7 @@ Create form:
 }
 ```
 
-Open form (supress tags and correct answer):
+Open form (suppress tags and correct answer):
 
 ```json
 {
@@ -71,11 +71,11 @@ Open form (supress tags and correct answer):
 ```
 
 
-Send answer: 
+Send answer:
 ```json
 {
     "name": "John Doe",
-    "answers": [1, null] // same question sequence, IDK = null
+    "answers": [1, null] // same question sequence, "I Don't Know" = null
 }
 ```
 
