@@ -30,6 +30,56 @@ Features:
 - Run `npm run dev`
 - The server will run at: localhost:8000
 
+## JSON Example
+
+Create form:
+
+```json
+{
+    "questions": [{
+        "idk": true, // add I Don't Know alternative for better precision on results
+        "alternatives": ["2", "4", "8", "NDA"],
+        "description": "How much is 2 + 2?",
+        "correct": 1, // index based answer,
+        "tags": ["math", "sum"] // tag answer for better dashboard results
+    },{
+        "idk": true,
+        "alternatives": ["2", "4", "8", "NDA"],
+        "description": "How much is 2 x 2?",
+        "correct": 1,
+        "tags": ["math", "mult"] // tag answer for better dashboard results
+    }],
+    "title": "Basics of math"
+}
+```
+
+Open form (supress tags and correct answer):
+
+```json
+{
+    "questions": [{
+        "idk": true,
+        "alternatives": ["2", "4", "8", "NDA"],
+        "description": "How much is 2 + 2?"
+    },{
+        "idk": true,
+        "alternatives": ["2", "4", "8", "NDA"],
+        "description": "How much is 2 x 2?"
+    }],
+    "title": "Basics of math"
+}
+```
+
+
+Send answer: 
+```json
+{
+    "name": "John Doe",
+    "answers": [1, null] // same question sequence, IDK = null
+}
+```
+
+
 ## Technologies Used
 
 - **Express.js**: Web server framework
