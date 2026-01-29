@@ -43,6 +43,13 @@
         </section>
 
         <section class="card">
+            <h2 class="section-title">Tag Score Distribution</h2>
+            <div class="chart-panel">
+                <canvas id="tagScoreChart"></canvas>
+            </div>
+        </section>
+
+        <section class="card">
             <h2 class="section-title">Response History</h2>
             <div style="overflow-x: auto;">
                 <table class="table">
@@ -64,6 +71,7 @@
         let dashboardData = null;
         let scoreChart = null;
         let tagChart = null;
+        let tagScoreChart = null;
 
         function calculateScores(form, responses) {
             const totalWeight = form.questions.reduce((sum, q) => sum + (q.weight ?? 1), 0) || 1;
@@ -101,6 +109,30 @@
             return Object.entries(tagBuckets).map(([tag, stats]) => ({
                 tag,
                 accuracy: stats.total ? Math.round((stats.correct / stats.total) * 1000) / 10 : 0
+            }));
+        }
+
+        function calculateTagScoreDistribution(form, responses) {
+            const tagTotals = {};
+            form.questions.forEach((question, index) => {
+                const tags = question.tags && question.tags.length ? question.tags : ['untagged'];
+                const weight = question.weight ?? 1;
+                tags.forEach(tag => {
+                    if (!tagTotals[tag]) {
+                        tagTotals[tag] = { earned: 0, possible: 0 };
+                    }
+                    responses.forEach(response => {
+                        tagTotals[tag].possible += weight;
+                        if (response.answers[index] === question.correct) {
+                            tagTotals[tag].earned += weight;
+                        }
+                    });
+                });
+            });
+
+            return Object.entries(tagTotals).map(([tag, totals]) => ({
+                tag,
+                score: totals.possible ? Math.round((totals.earned / totals.possible) * 1000) / 10 : 0
             }));
         }
 
@@ -203,6 +235,37 @@
             });
         }
 
+        function renderTagScoreChart(tagScores) {
+            const ctx = document.getElementById('tagScoreChart').getContext('2d');
+            const labels = tagScores.map(stat => stat.tag);
+            const data = tagScores.map(stat => stat.score);
+
+            if (tagScoreChart) tagScoreChart.destroy();
+            tagScoreChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Score %',
+                        data,
+                        backgroundColor: 'rgba(255, 176, 133, 0.7)',
+                        borderColor: 'rgba(239, 114, 70, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
         function renderResponsesTable(scoredResponses) {
             const tbody = document.getElementById('responsesTable');
             if (scoredResponses.length === 0) {
@@ -229,6 +292,8 @@
             renderScoreChart(scoredResponses);
             const tagStats = calculateTagStats(form, responses);
             renderTagChart(tagStats);
+            const tagScores = calculateTagScoreDistribution(form, responses);
+            renderTagScoreChart(tagScores);
             renderResponsesTable(scoredResponses);
         }
 
