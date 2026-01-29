@@ -104,6 +104,9 @@ dist
 # vitepress cache directory
 **/.vitepress/cache
 
+# Data directory for saved diagnostics
+data/
+
 # Docusaurus cache and generated files
 .docusaurus
 
