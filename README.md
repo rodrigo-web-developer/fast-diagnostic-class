@@ -27,7 +27,7 @@ Features:
 - Clone the repo
 - Open the folder
 - Run `npm install`
-- Run `npm run dev`
+- Run `npm start`
 - The server will run at: localhost:8000
 
 ## JSON Example
