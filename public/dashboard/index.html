@@ -342,6 +342,39 @@
         }, 5000);
 
         loadForms();
+
+        // Handle print events to fix chart rendering
+        window.addEventListener('beforeprint', () => {
+            // Redraw all charts with maintainAspectRatio true for print
+            if (scoreChart) {
+                scoreChart.options.maintainAspectRatio = true;
+                scoreChart.resize();
+            }
+            if (tagCountChart) {
+                tagCountChart.options.maintainAspectRatio = true;
+                tagCountChart.resize();
+            }
+            if (tagScoreChart) {
+                tagScoreChart.options.maintainAspectRatio = true;
+                tagScoreChart.resize();
+            }
+        });
+
+        window.addEventListener('afterprint', () => {
+            // Restore original settings after print
+            if (scoreChart) {
+                scoreChart.options.maintainAspectRatio = false;
+                scoreChart.resize();
+            }
+            if (tagCountChart) {
+                tagCountChart.options.maintainAspectRatio = false;
+                tagCountChart.resize();
+            }
+            if (tagScoreChart) {
+                tagScoreChart.options.maintainAspectRatio = false;
+                tagScoreChart.resize();
+            }
+        });
     </script>
     <script src="/scripts.js"></script>
 </body>
