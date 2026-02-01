@@ -29,23 +29,16 @@
         </section>
 
         <section class="card">
-            <h2 class="section-title">Score Distribution</h2>
-            <div class="chart-panel">
-                <canvas id="scoreChart"></canvas>
-            </div>
-        </section>
-
-        <section class="card">
-            <h2 class="section-title">Tag Performance</h2>
-            <div class="chart-panel">
-                <canvas id="tagChart"></canvas>
-            </div>
-        </section>
-
-        <section class="card">
             <h2 class="section-title">Tag Score Distribution</h2>
             <div class="chart-panel">
                 <canvas id="tagScoreChart"></canvas>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2 class="section-title">Score Distribution</h2>
+            <div class="chart-panel">
+                <canvas id="scoreChart"></canvas>
             </div>
         </section>
 
@@ -70,7 +63,6 @@
     <script>
         let dashboardData = null;
         let scoreChart = null;
-        let tagChart = null;
         let tagScoreChart = null;
 
         function calculateScores(form, responses) {
@@ -203,38 +195,6 @@
             });
         }
 
-        function renderTagChart(tagStats) {
-            const ctx = document.getElementById('tagChart').getContext('2d');
-            const labels = tagStats.map(stat => stat.tag);
-            const data = tagStats.map(stat => stat.accuracy);
-
-            if (tagChart) tagChart.destroy();
-            tagChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: 'Accuracy %',
-                        data,
-                        tension: 0.3,
-                        borderColor: 'rgba(239, 71, 111, 1)',
-                        backgroundColor: 'rgba(239, 71, 111, 0.2)',
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100
-                        }
-                    }
-                }
-            });
-        }
-
         function renderTagScoreChart(tagScores) {
             const ctx = document.getElementById('tagScoreChart').getContext('2d');
             const labels = tagScores.map(stat => stat.tag);
@@ -291,7 +251,6 @@
             renderMetrics(scoredResponses);
             renderScoreChart(scoredResponses);
             const tagStats = calculateTagStats(form, responses);
-            renderTagChart(tagStats);
             const tagScores = calculateTagScoreDistribution(form, responses);
             renderTagScoreChart(tagScores);
             renderResponsesTable(scoredResponses);
