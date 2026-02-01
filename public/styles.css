@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 
@@ -18,14 +17,14 @@ body[data-theme="dark"] {
     --bg-input: #3c3c3c;
     --bg-hover: #2a2d2e;
     --bg-active: #37373d;
-    
+
     --text-main: #cccccc;
     --text-bright: #ffffff;
     --text-muted: #858585;
-    
+
     --border: #454545;
     --input-border: transparent;
-    
+
     /* Syntax Colors */
     --syntax-keyword: #569cd6;
     --syntax-string: #ce9178;
@@ -33,7 +32,7 @@ body[data-theme="dark"] {
     --syntax-variable: #9cdcfe;
     --syntax-comment: #6a9955;
     --error: #f48771;
-    
+
     --badge-bg: rgba(86, 156, 214, 0.1);
     --badge-text: #9cdcfe;
 }
@@ -45,14 +44,14 @@ body[data-theme="light"] {
     --bg-input: #ffffff;
     --bg-hover: #e8e8e8;
     --bg-active: #dbdbdb;
-    
+
     --text-main: #333333;
     --text-bright: #111111;
     --text-muted: #666666;
-    
+
     --border: #e4e4e4;
     --input-border: #cecece;
-    
+
     /* Syntax Colors (VS Code Light+) */
     --syntax-keyword: #0000ff;
     --syntax-string: #a31515;
@@ -66,7 +65,7 @@ body[data-theme="light"] {
 }
 
 
-body[data-theme="light"]  input {
+body[data-theme="light"] input {
     border: 1px solid var(--input-border);
 }
 
@@ -128,7 +127,7 @@ a:hover {
     border: 1px solid var(--border);
     padding: 24px;
     /* VS Code doesn't use much border-radius, keep it subtle */
-    border-radius: 4px; 
+    border-radius: 4px;
     box-shadow: var(--shadow);
 }
 
@@ -177,11 +176,13 @@ input[type="text"],
 input[type="number"],
 textarea,
 select {
-    font-family: 'JetBrains Mono', 'Consolas', monospace; /* Code font for data entry */
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    /* Code font for data entry */
     font-size: 0.9rem;
     padding: 10px 12px;
     border-radius: 2px;
-    border: 1px solid transparent; /* Mimic VS Code input border behavior */
+    border: 1px solid transparent;
+    /* Mimic VS Code input border behavior */
     background: var(--bg-input);
     color: var(--text-main);
     transition: all 0.2s ease;
@@ -197,7 +198,8 @@ input:focus,
 textarea:focus,
 select:focus {
     outline: 1px solid var(--focus-border);
-    background: var(--bg-input); /* Keep dark */
+    background: var(--bg-input);
+    /* Keep dark */
     color: var(--text-bright);
 }
 
@@ -262,7 +264,8 @@ button.danger:hover {
 /* Question Cards */
 .question-card {
     border-left: 3px solid var(--syntax-function);
-    background: var(--bg-app); /* Slightly darker than panel */
+    background: var(--bg-app);
+    /* Slightly darker than panel */
     padding: 20px;
     margin-bottom: 16px;
     position: relative;
@@ -270,7 +273,7 @@ button.danger:hover {
 }
 
 .question-card:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .question-header {
@@ -313,7 +316,8 @@ button.danger:hover {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(86, 156, 214, 0.1); /* Blue tint */
+    background: rgba(86, 156, 214, 0.1);
+    /* Blue tint */
     color: var(--syntax-variable);
     padding: 4px 10px;
     border-radius: 2px;
@@ -369,14 +373,17 @@ button.danger:hover {
     width: 10px;
     height: 10px;
 }
+
 ::-webkit-scrollbar-track {
     background: var(--bg-app);
 }
+
 ::-webkit-scrollbar-thumb {
     background: #424242;
     border-radius: 5px;
     border: 2px solid var(--bg-app);
 }
+
 ::-webkit-scrollbar-thumb:hover {
     background: #4f4f4f;
 }
@@ -386,15 +393,24 @@ button.danger:hover {
         background: #fff;
         color: #000;
     }
-    .card, .question-card {
+
+    .card,
+    .question-card {
         border: 1px solid #ddd;
         background: #fff;
         box-shadow: none;
     }
-    .nav-grid, button, input[type="file"], .badge {
+
+    .nav-grid,
+    button,
+    input[type="file"],
+    .badge {
         display: none !important;
     }
-    input, textarea, select {
+
+    input,
+    textarea,
+    select {
         border: 1px solid #ccc;
         background: #fff;
         color: #000;
@@ -428,6 +444,35 @@ button.icon-btn {
     background: transparent;
     border: 1px solid transparent;
 }
+
 button.icon-btn:hover {
     background: var(--bg-active);
+}
+
+.list-item input[type="text"] {
+    flex: 1;
+}
+.list-item span {
+    /* add pre-wrap behavior for alternatives */
+    white-space: pre-wrap;
+}
+
+.question-card>.description {
+    white-space: pre-wrap;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    border: 1px solid var(--border);
+    padding: 12px;
+    text-align: left;
+}
+
+.table th {
+    background: var(--bg-panel);
+    color: var(--text-bright);
 }

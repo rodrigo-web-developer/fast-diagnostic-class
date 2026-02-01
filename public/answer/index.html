@@ -79,7 +79,7 @@
                                 <strong>Question ${index + 1}</strong>
                                 ${question.tags && question.tags.length ? `<span class="muted">${question.tags.join(', ')}</span>` : ''}
                             </div>
-                            <p>${question.description}</p>
+                            <p class="description">${question.description}</p>
                             <div class="list">
                                 ${options.map(option => `
                                     <label class="list-item" style="justify-content: flex-start;">
