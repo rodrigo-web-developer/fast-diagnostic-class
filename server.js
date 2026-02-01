@@ -273,20 +273,110 @@ app.get('/api/answers', requireLocal, async (req, res) => {
 
 app.get('/api/dashboard', requireLocal, async (req, res) => {
     try {
-        const forms = await listForms();
-        const answersByForm = {};
-        for (const form of forms) {
-            answersByForm[form.id] = await readJson(path.join(answersDir, `${form.id}.json`), []);
+        const formId = req.query.formId;
+        if (!formId) {
+            return res.status(400).json({ success: false, message: 'formId is required.' });
         }
-        const activeFormId = await getActiveFormId();
-        res.json({
-            success: true,
-            data: {
-                forms,
-                answersByForm,
-                activeFormId
-            }
+
+        const form = await readJson(path.join(formsDir, `${formId}.json`), null);
+        if (!form) {
+            return res.status(404).json({ success: false, message: 'Form not found.' });
+        }
+
+        const answers = await readJson(path.join(answersDir, `${formId}.json`), []);
+
+        // Calculate statistics
+        const totalStudents = answers.length;
+        const stats = {
+            formId: form.id,
+            formTitle: form.title,
+            totalStudents,
+            totalQuestions: form.questions.length,
+            results: [],
+            tagStats: {},
+            tagScores: {}
+        };
+
+        // Initialize tag statistics
+        const tagMap = {};
+        form.questions.forEach(question => {
+            question.tags.forEach(tag => {
+                if (!tagMap[tag]) {
+                    tagMap[tag] = {
+                        totalQuestions: 0,
+                        totalWeight: 0,
+                        correctCount: 0,
+                        correctWeight: 0
+                    };
+                }
+                tagMap[tag].totalQuestions++;
+                tagMap[tag].totalWeight += question.weight;
+            });
         });
+
+        // Process each student's answers
+        answers.forEach(studentAnswer => {
+            let correctCount = 0;
+            let totalWeight = 0;
+            let earnedWeight = 0;
+            const tagResults = {};
+
+            studentAnswer.answers.forEach((answer, index) => {
+                const question = form.questions[index];
+                const isCorrect = answer !== null && answer === question.correct;
+                const weight = question.weight;
+
+                totalWeight += weight;
+                if (isCorrect) {
+                    correctCount++;
+                    earnedWeight += weight;
+
+                    // Update tag statistics
+                    question.tags.forEach(tag => {
+                        if (!tagResults[tag]) {
+                            tagResults[tag] = { correct: 0, weight: 0 };
+                        }
+                        tagResults[tag].correct++;
+                        tagResults[tag].weight += weight;
+                    });
+                }
+            });
+
+            // Update global tag statistics
+            Object.keys(tagResults).forEach(tag => {
+                tagMap[tag].correctCount += tagResults[tag].correct;
+                tagMap[tag].correctWeight += tagResults[tag].weight;
+            });
+
+            const scorePercentage = totalWeight > 0 ? (earnedWeight / totalWeight) * 100 : 0;
+
+            stats.results.push({
+                id: studentAnswer.id,
+                name: studentAnswer.name,
+                submittedAt: studentAnswer.submittedAt,
+                correctCount,
+                totalQuestions: form.questions.length,
+                earnedWeight,
+                totalWeight,
+                scorePercentage: Math.round(scorePercentage * 100) / 100
+            });
+        });
+
+        // Calculate tag statistics - quantity and score
+        Object.keys(tagMap).forEach(tag => {
+            const tagData = tagMap[tag];
+            const avgCorrectCount = totalStudents > 0 ? tagData.correctCount / totalStudents : 0;
+            const scorePercentage = tagData.totalWeight > 0 ? (tagData.correctWeight / (totalStudents * tagData.totalWeight)) * 100 : 0;
+
+            stats.tagStats[tag] = {
+                totalQuestions: tagData.totalQuestions,
+                totalWeight: tagData.totalWeight,
+                avgCorrectCount: Math.round(avgCorrectCount * 100) / 100,
+                scorePercentage: Math.round(scorePercentage * 100) / 100
+            };
+        });
+
+        res.json({ success: true, data: stats });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
