@@ -30,6 +30,38 @@ Features:
 - Run `npm start`
 - The server will run at: localhost:8000
 
+## Network-Based Authentication
+
+The application uses network-based authentication to protect teacher resources while allowing students easy access:
+
+### Teacher Access (Localhost Only)
+The following pages are restricted to **localhost access only** (127.0.0.1, ::1, or localhost):
+- **Create Page** (`/create`) - Create and manage questionnaires
+- **Dashboard** (`/dashboard`) - View results and analytics
+- **Admin APIs** - All form management endpoints
+
+Teachers must access these pages directly from the machine running the server.
+
+### Student Access (Local Network)
+Students on the same local network can access:
+- **Answer Page** (`LOCAL_IP:8000/answer`) - Submit answers to the active questionnaire
+- **Answer API** - Submit responses anonymously
+
+Students connect using the server's local IP address (e.g., `192.168.1.100:8000/answer`).
+
+### How It Works
+The server automatically detects the request origin:
+- Requests from **localhost** → Full access to all features
+- Requests from **local network IPs** → Redirected to answer page only
+- Unauthorized access attempts → Redirected to `/unauthorized` with a link to the answer form
+
+This approach ensures:
+- ✅ No complex authentication system needed
+- ✅ Teachers control the questionnaires from their machine
+- ✅ Students have simple, immediate access via a single URL
+- ✅ All data stays within the local network
+- ✅ Easy installation and use
+
 ## JSON Example
 
 Create form:
@@ -84,6 +116,6 @@ Send answer:
 
 - **Express.js**: Web server framework
 - **Chart.js**: Data visualization library
-- **LocalStorage**: Browser-based data persistence
+- **Local persistence**: Local files for data storage
 - **Vanilla JavaScript**: Client-side functionality
 - **Node.js**: Runtime environment
