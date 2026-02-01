@@ -9,6 +9,10 @@ const HOST = '0.0.0.0';
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Protect admin pages (create and dashboard) - only accessible from localhost
+app.use(['/create', '/dashboard', '/create/', '/dashboard/'], requireLocalPath);
+
 app.use(express.static('public'));
 
 function isLocalRequest(req) {
@@ -16,6 +20,13 @@ function isLocalRequest(req) {
     const ip = (req.ip || '').replace('::ffff:', '');
     const localHosts = new Set(['localhost', '127.0.0.1', '::1']);
     return localHosts.has(host) || localHosts.has(ip);
+}
+
+function requireLocalPath(req, res, next) {
+    if (!isLocalRequest(req)) {
+        return res.redirect('/unauthorized/');
+    }
+    return next();
 }
 
 function requireLocal(req, res, next) {

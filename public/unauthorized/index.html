@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Denied - Fast Diagnostic Class</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        .unauthorized-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+            text-align: center;
+            padding: 2rem;
+        }
+        .unauthorized-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            color: #e74c3c;
+        }
+        .unauthorized-title {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+        .unauthorized-message {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            color: #7f8c8d;
+            max-width: 500px;
+        }
+        .answer-link {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            transition: background-color 0.3s ease;
+        }
+        .answer-link:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="unauthorized-container">
+        <div class="unauthorized-icon">🔒</div>
+        <h1 class="unauthorized-title">Access Denied</h1>
+        <p class="unauthorized-message">
+            This page is only accessible to teachers from the local machine (localhost). 
+            Students can access the answer form using the link below.
+        </p>
+        <a href="/answer" class="answer-link">Go to Answer Form</a>
+    </div>
+</body>
+</html>
