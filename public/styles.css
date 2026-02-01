@@ -1,8 +1,18 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
+
 :root {
-    /* VS Code Dark+ Palette */
+    /* Common definitions */
+    --accent-primary: #007acc;
+    --accent-hover: #0062a3;
+    --focus-border: #007fd4;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --transition-speed: 0.3s;
+}
+
+/* DARK THEME (Default) */
+body[data-theme="dark"] {
     --bg-app: #1e1e1e;
     --bg-panel: #252526;
     --bg-input: #3c3c3c;
@@ -13,20 +23,51 @@
     --text-bright: #ffffff;
     --text-muted: #858585;
     
-    --accent-primary: #007acc; /* VS Code Blue */
-    --accent-hover: #0062a3;
-    --focus-border: #007fd4;
-    
     --border: #454545;
-    --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --input-border: transparent;
     
     /* Syntax Colors */
-    --syntax-keyword: #569cd6; /* Blue */
-    --syntax-string: #ce9178; /* Orange */
-    --syntax-function: #dcdcaa; /* Yellow */
-    --syntax-variable: #9cdcfe; /* Light Blue */
-    --syntax-comment: #6a9955; /* Green */
+    --syntax-keyword: #569cd6;
+    --syntax-string: #ce9178;
+    --syntax-function: #dcdcaa;
+    --syntax-variable: #9cdcfe;
+    --syntax-comment: #6a9955;
     --error: #f48771;
+    
+    --badge-bg: rgba(86, 156, 214, 0.1);
+    --badge-text: #9cdcfe;
+}
+
+/* LIGHT THEME */
+body[data-theme="light"] {
+    --bg-app: #f3f3f3;
+    --bg-panel: #ffffff;
+    --bg-input: #ffffff;
+    --bg-hover: #e8e8e8;
+    --bg-active: #dbdbdb;
+    
+    --text-main: #333333;
+    --text-bright: #111111;
+    --text-muted: #666666;
+    
+    --border: #e4e4e4;
+    --input-border: #cecece;
+    
+    /* Syntax Colors (VS Code Light+) */
+    --syntax-keyword: #0000ff;
+    --syntax-string: #a31515;
+    --syntax-function: #795e26;
+    --syntax-variable: #001080;
+    --syntax-comment: #008000;
+    --error: #cd3131;
+
+    --badge-bg: rgba(0, 122, 204, 0.1);
+    --badge-text: #007acc;
+}
+
+
+body[data-theme="light"]  input {
+    border: 1px solid var(--input-border);
 }
 
 * {
@@ -371,4 +412,22 @@ button.danger:hover {
 .card-menu h2 {
     font-family: 'Inter', sans-serif;
     margin: 0 0 12px;
+}
+
+
+.change-theme-top-right {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+}
+
+button.icon-btn {
+    padding: 8px;
+    border-radius: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+}
+button.icon-btn:hover {
+    background: var(--bg-active);
 }
