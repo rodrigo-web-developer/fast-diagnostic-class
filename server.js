@@ -7,6 +7,11 @@ const app = express();
 const PORT = 8000;
 const HOST = '0.0.0.0';
 
+
+const acceptingAnswers = {
+    status: true
+}
+
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -156,6 +161,11 @@ app.post('/api/forms/upload', requireLocal, async (req, res) => {
     }
 });
 
+app.put('/api/toggle-accepting-answers', requireLocal, async (req, res) => {
+    acceptingAnswers.status = !acceptingAnswers.status;
+    res.status(202).json({ success: true, acceptingAnswers: acceptingAnswers.status });
+});
+
 app.get('/api/forms', requireLocal, async (req, res) => {
     try {
         const activeId = await getActiveFormId();
@@ -216,6 +226,9 @@ app.post('/api/forms/:id/activate', requireLocal, async (req, res) => {
 
 app.post('/api/answers', async (req, res) => {
     try {
+        if (acceptingAnswers.status === false) {
+            return res.status(403).json({ success: false, message: 'Not accepting answers at this time.' });
+        }
         const { formId, name, answers } = req.body;
         if (!formId || !Array.isArray(answers)) {
             return res.status(400).json({ success: false, message: 'formId and answers are required.' });
