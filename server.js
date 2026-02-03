@@ -161,7 +161,7 @@ app.post('/api/forms/upload', requireLocal, async (req, res) => {
     }
 });
 
-app.put('/api/toggle-accepting-answers', requireLocal, async (req, res) => {
+app.put('/api/answers/toggle', requireLocal, async (req, res) => {
     acceptingAnswers.status = !acceptingAnswers.status;
     res.status(202).json({ success: true, acceptingAnswers: acceptingAnswers.status });
 });
