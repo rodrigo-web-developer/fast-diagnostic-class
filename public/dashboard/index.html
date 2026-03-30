@@ -73,15 +73,51 @@
         </section>
 
         <section class="card">
+            <h2 class="section-title">Most Common Questions - Correct</h2>
+            <div style="overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Question</th>
+                            <th>Correct</th>
+                            <th>Wrong</th>
+                            <th>I Don't Know</th>
+                        </tr>
+                    </thead>
+                    <tbody id="correctQuestionsTable"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2 class="section-title">Most Common Questions - Wrong</h2>
+            <div style="overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Question</th>
+                            <th>Correct</th>
+                            <th>Wrong</th>
+                            <th>I Don't Know</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wrongQuestionsTable"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card">
             <h2 class="section-title">Response History</h2>
             <div style="overflow-x: auto;">
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>Score</th>
-                            <th>Correct</th>
-                            <th>Submitted</th>
+                            <th class="sortable" data-sort="name">Name ↕</th>
+                            <th class="sortable" data-sort="score">Score ↕</th>
+                            <th class="sortable" data-sort="correct">Correct ↕</th>
+                            <th class="sortable" data-sort="date">Submitted ↕</th>
                         </tr>
                     </thead>
                     <tbody id="responsesTable"></tbody>
@@ -96,6 +132,7 @@
         let scoreChart = null;
         let tagScoreChart = null;
         let tagCountChart = null;
+        let currentSort = { column: 'date', direction: 'desc' };
 
         function renderMetrics(stats) {
             const metricsGrid = document.getElementById('metricsGrid');
@@ -250,6 +287,86 @@
             });
         }
 
+        function renderQuestionTables(questionStats, totalStudents) {
+            const correctTable = document.getElementById('correctQuestionsTable');
+            const wrongTable = document.getElementById('wrongQuestionsTable');
+            
+            if (!questionStats || questionStats.length === 0 || totalStudents === 0) {
+                correctTable.innerHTML = '<tr><td colspan="5" class="muted">No data available.</td></tr>';
+                wrongTable.innerHTML = '<tr><td colspan="5" class="muted">No data available.</td></tr>';
+                return;
+            }
+
+            // Sort by correct count (descending) for most correct questions
+            const sortedCorrect = [...questionStats].sort((a, b) => b.correctCount - a.correctCount);
+            
+            // Sort by wrong count (descending) for most wrong questions
+            const sortedWrong = [...questionStats].sort((a, b) => b.wrongCount - a.wrongCount);
+
+            // Display top 5 most correct
+            correctTable.innerHTML = sortedCorrect.slice(0, 5).map(q => {
+                const correctPercentage = ((q.correctCount / totalStudents) * 100).toFixed(1);
+                return `
+                    <tr>
+                        <td>${q.questionIndex + 1}</td>
+                        <td>${q.description}</td>
+                        <td style="color: #10b981; font-weight: bold;">${q.correctCount} (${correctPercentage}%)</td>
+                        <td>${q.wrongCount}</td>
+                        <td>${q.idkCount}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Display top 5 most wrong
+            wrongTable.innerHTML = sortedWrong.slice(0, 5).map(q => {
+                const wrongPercentage = ((q.wrongCount / totalStudents) * 100).toFixed(1);
+                return `
+                    <tr>
+                        <td>${q.questionIndex + 1}</td>
+                        <td>${q.description}</td>
+                        <td>${q.correctCount}</td>
+                        <td style="color: #ef4444; font-weight: bold;">${q.wrongCount} (${wrongPercentage}%)</td>
+                        <td>${q.idkCount}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function sortResults(stats, column, direction) {
+            const sorted = [...stats.results];
+            
+            sorted.sort((a, b) => {
+                let valA, valB;
+                
+                switch(column) {
+                    case 'name':
+                        valA = a.name.toLowerCase();
+                        valB = b.name.toLowerCase();
+                        break;
+                    case 'score':
+                        valA = a.scorePercentage;
+                        valB = b.scorePercentage;
+                        break;
+                    case 'correct':
+                        valA = a.correctCount;
+                        valB = b.correctCount;
+                        break;
+                    case 'date':
+                        valA = new Date(a.submittedAt);
+                        valB = new Date(b.submittedAt);
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                if (valA < valB) return direction === 'asc' ? -1 : 1;
+                if (valA > valB) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            return sorted;
+        }
+
         function renderResponsesTable(stats) {
             const tbody = document.getElementById('responsesTable');
             if (stats.totalStudents === 0) {
@@ -257,10 +374,7 @@
                 return;
             }
             
-            // Sort by submission time (most recent first)
-            const sortedResults = [...stats.results].sort((a, b) => 
-                new Date(b.submittedAt) - new Date(a.submittedAt)
-            );
+            const sortedResults = sortResults(stats, currentSort.column, currentSort.direction);
 
             tbody.innerHTML = sortedResults.map(result => `
                 <tr>
@@ -288,6 +402,7 @@
                 renderScoreChart(dashboardStats);
                 renderTagCountChart(dashboardStats.tagStats);
                 renderTagScoreChart(dashboardStats.tagStats);
+                renderQuestionTables(dashboardStats.questionStats, dashboardStats.totalStudents);
                 renderResponsesTable(dashboardStats);
             } catch (error) {
                 console.error('Error updating dashboard:', error);
@@ -331,6 +446,39 @@
 
         document.getElementById('formSelector').addEventListener('change', event => {
             updateDashboard(event.target.value);
+        });
+
+        // Add click handlers for sortable columns
+        document.querySelectorAll('.sortable').forEach(header => {
+            header.addEventListener('click', () => {
+                const column = header.dataset.sort;
+                
+                if (currentSort.column === column) {
+                    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.column = column;
+                    currentSort.direction = 'asc';
+                }
+                
+                if (dashboardStats) {
+                    renderResponsesTable(dashboardStats);
+                }
+                
+                // Update header to show sort direction
+                document.querySelectorAll('.sortable').forEach(h => {
+                    const col = h.dataset.sort;
+                    const text = h.textContent.replace(/ [↑↓↕]/g, '');
+                    if (col === currentSort.column) {
+                        h.textContent = text + (currentSort.direction === 'asc' ? ' ↑' : ' ↓');
+                    } else {
+                        h.textContent = text + ' ↕';
+                    }
+                });
+            });
+            
+            // Set cursor pointer style
+            header.style.cursor = 'pointer';
+            header.style.userSelect = 'none';
         });
 
         // Auto-refresh every 5 seconds

@@ -63,10 +63,12 @@
 
         function renderForm(form) {
             formTitle.textContent = form.title;
+            const nameLabel = form.nameRequired ? 'Student name (required)' : 'Student name (optional)';
+            const nameRequiredAttr = form.nameRequired ? 'required' : '';
             answerForm.innerHTML = `
                 <div class="form-group" style="margin-bottom: 24px;">
-                    <label for="studentName">Student name (optional)</label>
-                    <input type="text" id="studentName" placeholder="Digite seu nome">
+                    <label for="studentName">${nameLabel}</label>
+                    <input type="text" id="studentName" placeholder="Digite seu nome" ${nameRequiredAttr}>
                 </div>
                 ${form.questions.map((question, index) => {
                 const options = [...question.alternatives.map((alt, altIndex) => ({ label: alt, value: altIndex }))];
@@ -110,7 +112,14 @@
             event.preventDefault();
             if (!activeForm) return;
 
-            const nameValue = document.getElementById('studentName').value.trim();
+            const nameInput = document.getElementById('studentName');
+            const nameValue = nameInput ? nameInput.value.trim() : '';
+
+            if (activeForm.nameRequired && !nameValue) {
+                showNotice('Name is required for this questionnaire.', 'error');
+                return;
+            }
+
             const answers = activeForm.questions.map((_, index) => {
                 const selected = answerForm.querySelector(`input[name="q-${index}"]:checked`);
                 if (!selected) return null;
