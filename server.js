@@ -72,6 +72,9 @@ function validateFormPayload(payload) {
     if (!payload.title || typeof payload.title !== 'string') {
         return 'Title is required.';
     }
+    if (payload.nameRequired !== undefined && typeof payload.nameRequired !== 'boolean') {
+        return 'nameRequired must be a boolean.';
+    }
     if (!Array.isArray(payload.questions) || payload.questions.length === 0) {
         return 'At least one question is required.';
     }
@@ -95,6 +98,7 @@ function normalizeFormPayload(payload) {
         id: payload.id || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
         title: payload.title.trim(),
         createdAt: payload.createdAt || now,
+        nameRequired: payload.nameRequired === true,
         questions: payload.questions.map(question => ({
             description: question.description.trim(),
             alternatives: question.alternatives.map(alt => alt.trim()),
@@ -247,10 +251,16 @@ app.post('/api/answers', async (req, res) => {
             }
         }
 
+        if (form.nameRequired === true) {
+            if (!name || typeof name !== 'string' || name.trim() === '') {
+                return res.status(400).json({ success: false, message: 'Name is required for this questionnaire.' });
+            }
+        }
+
         const payload = {
             id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
             formId,
-            name: name && typeof name === 'string' ? name : 'Anonymous',
+            name: (name && typeof name === 'string' && name.trim()) ? name.trim() : 'Anonymous',
             answers,
             submittedAt: new Date().toISOString()
         };
@@ -307,7 +317,8 @@ app.get('/api/dashboard', requireLocal, async (req, res) => {
             totalQuestions: form.questions.length,
             results: [],
             tagStats: {},
-            tagScores: {}
+            tagScores: {},
+            questionStats: []
         };
 
         // Initialize tag statistics
@@ -327,6 +338,15 @@ app.get('/api/dashboard', requireLocal, async (req, res) => {
             });
         });
 
+        // Initialize question statistics
+        const questionStatsMap = form.questions.map((question, index) => ({
+            questionIndex: index,
+            description: question.description,
+            correctCount: 0,
+            wrongCount: 0,
+            idkCount: 0
+        }));
+
         // Process each student's answers
         answers.forEach(studentAnswer => {
             let correctCount = 0;
@@ -340,9 +360,14 @@ app.get('/api/dashboard', requireLocal, async (req, res) => {
                 const weight = question.weight;
 
                 totalWeight += weight;
-                if (isCorrect) {
+                
+                // Update question statistics
+                if (answer === null) {
+                    questionStatsMap[index].idkCount++;
+                } else if (isCorrect) {
                     correctCount++;
                     earnedWeight += weight;
+                    questionStatsMap[index].correctCount++;
 
                     // Update tag statistics
                     question.tags.forEach(tag => {
@@ -352,6 +377,8 @@ app.get('/api/dashboard', requireLocal, async (req, res) => {
                         tagResults[tag].correct++;
                         tagResults[tag].weight += weight;
                     });
+                } else {
+                    questionStatsMap[index].wrongCount++;
                 }
             });
 
@@ -388,6 +415,9 @@ app.get('/api/dashboard', requireLocal, async (req, res) => {
                 scorePercentage: Math.round(scorePercentage * 100) / 100
             };
         });
+
+        // Add question statistics to response
+        stats.questionStats = questionStatsMap;
 
         res.json({ success: true, data: stats });
     } catch (error) {
