@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Answer Questionnaire · Fast Diagnostic Class</title>
     <link rel="stylesheet" href="/styles.css">
+    <script src="/markdown.js"></script>
 </head>
 
 <body>
@@ -53,6 +54,7 @@
         const answerForm = document.getElementById('answerForm');
         const formTitle = document.getElementById('formTitle');
         const answerNotice = document.getElementById('answerNotice');
+        const markdownUtils = window.markdownUtils;
         let activeForm = null;
 
         function showNotice(message, type) {
@@ -81,7 +83,7 @@
                                 <strong>Question ${index + 1}</strong>
                                 ${question.tags && question.tags.length ? `<span class="muted">${question.tags.join(', ')}</span>` : ''}
                             </div>
-                            <p class="description">${question.description}</p>
+                            <div class="description markdown-content">${markdownUtils.renderMarkdown(question.description || '')}</div>
                             <div class="list">
                                 ${options.map(option => `
                                     <label class="list-item" style="justify-content: flex-start;">
