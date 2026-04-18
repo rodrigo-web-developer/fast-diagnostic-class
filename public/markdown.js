@@ -1,4 +1,6 @@
 (() => {
+    let markdownFallbackLogged = false;
+
     function escapeHtml(value) {
         return String(value ?? '')
             .replace(/&/g, '&amp;')
@@ -16,6 +18,14 @@
         const text = String(markdownText ?? '').replace(/\r\n/g, '\n');
         if (!text.trim()) return '';
         if (!window.marked || !window.DOMPurify) {
+            if (!markdownFallbackLogged) {
+                const missingLibraries = [
+                    !window.marked ? 'marked' : null,
+                    !window.DOMPurify ? 'DOMPurify' : null
+                ].filter(Boolean).join(', ');
+                console.warn(`Markdown fallback enabled. Missing libraries: ${missingLibraries}.`);
+                markdownFallbackLogged = true;
+            }
             return `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>`;
         }
 

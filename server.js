@@ -6,22 +6,22 @@ const path = require('path');
 const app = express();
 const PORT = 8000;
 const HOST = '0.0.0.0';
-const markedBundlePath = path.join(__dirname, 'node_modules', 'marked', 'lib', 'marked.umd.js');
-const domPurifyBundlePath = path.join(__dirname, 'node_modules', 'dompurify', 'dist', 'purify.min.js');
+const markedBundlePath = path.join(path.dirname(require.resolve('marked')), 'marked.umd.js');
+const domPurifyBundlePath = path.join(path.dirname(require.resolve('dompurify')), 'purify.min.js');
 let markedBundle = null;
 let domPurifyBundle = null;
 
 try {
     markedBundle = fsSync.readFileSync(markedBundlePath, 'utf8');
 } catch (error) {
-    console.error('Unable to load marked bundle:', error.message);
+    console.error(`Unable to load marked bundle from ${markedBundlePath}:`, error.message);
     markedBundle = null;
 }
 
 try {
     domPurifyBundle = fsSync.readFileSync(domPurifyBundlePath, 'utf8');
 } catch (error) {
-    console.error('Unable to load DOMPurify bundle:', error.message);
+    console.error(`Unable to load DOMPurify bundle from ${domPurifyBundlePath}:`, error.message);
     domPurifyBundle = null;
 }
 
@@ -38,14 +38,14 @@ app.use(['/create', '/dashboard', '/create/', '/dashboard/'], requireLocalPath);
 
 app.get('/vendor/marked.umd.js', (req, res) => {
     if (!markedBundle) {
-        return res.status(503).send('marked bundle unavailable');
+        return res.status(503).send('Markdown library failed to load. Check server logs.');
     }
     return res.type('application/javascript').send(markedBundle);
 });
 
 app.get('/vendor/purify.min.js', (req, res) => {
     if (!domPurifyBundle) {
-        return res.status(503).send('dompurify bundle unavailable');
+        return res.status(503).send('HTML sanitization library failed to load. Check server logs.');
     }
     return res.type('application/javascript').send(domPurifyBundle);
 });
