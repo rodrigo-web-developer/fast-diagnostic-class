@@ -12,6 +12,18 @@
         return escapeHtml(value).replace(/`/g, '&#96;');
     }
 
+    function sanitizeHttpUrl(value) {
+        try {
+            const parsed = new URL(String(value ?? ''));
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                return null;
+            }
+            return parsed.toString();
+        } catch (_) {
+            return null;
+        }
+    }
+
     function renderInlineMarkdown(input) {
         const codeTokens = [];
         const linkTokens = [];
@@ -24,8 +36,12 @@
         });
 
         text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) => {
+            const safeUrl = sanitizeHttpUrl(url);
+            if (!safeUrl) {
+                return escapeHtml(`[${label}](${url})`);
+            }
             const token = `__MD_LINK_${linkTokens.length}__`;
-            linkTokens.push(`<a href="${escapeHtmlAttribute(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`);
+            linkTokens.push(`<a href="${escapeHtmlAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`);
             return token;
         });
 
