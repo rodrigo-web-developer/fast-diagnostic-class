@@ -72,7 +72,7 @@ Create form:
     "questions": [{
         "idk": true, // add "I Don't Know" alternative for better precision on results
         "alternatives": ["2", "4", "8", "NDA"],
-        "description": "## Basic sum\nHow much is **2 + 2**?",
+        "description": "## Basic addition\nHow much is **2 + 2**?",
         "correct": 1, // index-based answer
         "tags": ["math", "sum"] // tag answer for better dashboard results
     },{

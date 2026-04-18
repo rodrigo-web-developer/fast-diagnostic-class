@@ -13,11 +13,27 @@
     }
 
     function renderInlineMarkdown(input) {
-        let text = escapeHtml(input);
-        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+        const codeTokens = [];
+        const linkTokens = [];
+        let text = String(input ?? '');
+
+        text = text.replace(/`([^`]+)`/g, (_, codeValue) => {
+            const token = `__MD_CODE_${codeTokens.length}__`;
+            codeTokens.push(`<code>${escapeHtml(codeValue)}</code>`);
+            return token;
+        });
+
+        text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) => {
+            const token = `__MD_LINK_${linkTokens.length}__`;
+            linkTokens.push(`<a href="${escapeHtmlAttribute(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`);
+            return token;
+        });
+
+        text = escapeHtml(text);
         text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
         text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-        text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+        text = text.replace(/__MD_CODE_(\d+)__/g, (match, index) => codeTokens[Number(index)] || match);
+        text = text.replace(/__MD_LINK_(\d+)__/g, (match, index) => linkTokens[Number(index)] || match);
         return text;
     }
 
