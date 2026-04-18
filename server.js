@@ -6,6 +6,8 @@ const path = require('path');
 const app = express();
 const PORT = 8000;
 const HOST = '0.0.0.0';
+const markedBundlePath = path.join(__dirname, 'node_modules', 'marked', 'lib', 'marked.umd.js');
+const domPurifyBundlePath = path.join(__dirname, 'node_modules', 'dompurify', 'dist', 'purify.min.js');
 
 
 const acceptingAnswers = {
@@ -17,6 +19,14 @@ app.use(express.urlencoded({ extended: true }));
 
 // Protect admin pages (create and dashboard) - only accessible from localhost
 app.use(['/create', '/dashboard', '/create/', '/dashboard/'], requireLocalPath);
+
+app.get('/vendor/marked.umd.js', (req, res) => {
+    res.sendFile(markedBundlePath);
+});
+
+app.get('/vendor/purify.min.js', (req, res) => {
+    res.sendFile(domPurifyBundlePath);
+});
 
 app.use(express.static('public'));
 
