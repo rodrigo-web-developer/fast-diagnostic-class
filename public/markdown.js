@@ -62,7 +62,8 @@
             const block = rawBlock.trim();
             if (!block) return '';
 
-            const lines = block.split('\n');
+            const lines = block.split('\n').filter(line => line.trim() !== '');
+            if (lines.length === 0) return '';
 
             if (lines.every(line => /^\s*[-*]\s+/.test(line))) {
                 const items = lines
