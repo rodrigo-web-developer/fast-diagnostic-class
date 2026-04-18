@@ -40,7 +40,7 @@ app.get('/vendor/marked.umd.js', (req, res) => {
     if (!markedBundle) {
         return res.status(503).send('Markdown library failed to load. Check server logs.');
     }
-    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.set('Cache-Control', 'public, max-age=3600');
     return res.type('application/javascript').send(markedBundle);
 });
 
@@ -48,7 +48,7 @@ app.get('/vendor/xss.js', (req, res) => {
     if (!xssBundle) {
         return res.status(503).send('HTML sanitization library failed to load. Check server logs.');
     }
-    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.set('Cache-Control', 'public, max-age=3600');
     return res.type('application/javascript').send(xssBundle);
 });
 

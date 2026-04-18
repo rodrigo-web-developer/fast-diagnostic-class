@@ -29,6 +29,8 @@
             return `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>`;
         }
 
+        // gfm: GitHub Flavored Markdown (tables, strikethrough, etc.)
+        // breaks: single newlines become <br> tags
         const rawHtml = window.marked.parse(text, {
             gfm: true,
             breaks: true
