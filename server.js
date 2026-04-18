@@ -8,6 +8,20 @@ const PORT = 8000;
 const HOST = '0.0.0.0';
 const markedBundlePath = path.join(__dirname, 'node_modules', 'marked', 'lib', 'marked.umd.js');
 const domPurifyBundlePath = path.join(__dirname, 'node_modules', 'dompurify', 'dist', 'purify.min.js');
+let markedBundle = null;
+let domPurifyBundle = null;
+
+try {
+    markedBundle = fsSync.readFileSync(markedBundlePath, 'utf8');
+} catch (_) {
+    markedBundle = null;
+}
+
+try {
+    domPurifyBundle = fsSync.readFileSync(domPurifyBundlePath, 'utf8');
+} catch (_) {
+    domPurifyBundle = null;
+}
 
 
 const acceptingAnswers = {
@@ -21,11 +35,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use(['/create', '/dashboard', '/create/', '/dashboard/'], requireLocalPath);
 
 app.get('/vendor/marked.umd.js', (req, res) => {
-    res.sendFile(markedBundlePath);
+    if (!markedBundle) {
+        return res.status(503).send('marked bundle unavailable');
+    }
+    return res.type('application/javascript').send(markedBundle);
 });
 
 app.get('/vendor/purify.min.js', (req, res) => {
-    res.sendFile(domPurifyBundlePath);
+    if (!domPurifyBundle) {
+        return res.status(503).send('dompurify bundle unavailable');
+    }
+    return res.type('application/javascript').send(domPurifyBundle);
 });
 
 app.use(express.static('public'));
