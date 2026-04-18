@@ -6,6 +6,24 @@ const path = require('path');
 const app = express();
 const PORT = 8000;
 const HOST = '0.0.0.0';
+const markedBundlePath = path.join(path.dirname(require.resolve('marked')), 'marked.umd.js');
+const xssBundlePath = path.join(path.dirname(require.resolve('xss')), '..', 'dist', 'xss.js');
+let markedBundle = null;
+let xssBundle = null;
+
+try {
+    markedBundle = fsSync.readFileSync(markedBundlePath, 'utf8');
+} catch (error) {
+    console.error(`Unable to load marked bundle from ${markedBundlePath}:`, error.message);
+    markedBundle = null;
+}
+
+try {
+    xssBundle = fsSync.readFileSync(xssBundlePath, 'utf8');
+} catch (error) {
+    console.error(`Unable to load xss bundle from ${xssBundlePath}:`, error.message);
+    xssBundle = null;
+}
 
 
 const acceptingAnswers = {
@@ -17,6 +35,22 @@ app.use(express.urlencoded({ extended: true }));
 
 // Protect admin pages (create and dashboard) - only accessible from localhost
 app.use(['/create', '/dashboard', '/create/', '/dashboard/'], requireLocalPath);
+
+app.get('/vendor/marked.umd.js', (req, res) => {
+    if (!markedBundle) {
+        return res.status(503).send('Markdown library failed to load. Check server logs.');
+    }
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.type('application/javascript').send(markedBundle);
+});
+
+app.get('/vendor/xss.js', (req, res) => {
+    if (!xssBundle) {
+        return res.status(503).send('HTML sanitization library failed to load. Check server logs.');
+    }
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.type('application/javascript').send(xssBundle);
+});
 
 app.use(express.static('public'));
 

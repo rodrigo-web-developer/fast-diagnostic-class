@@ -1,4 +1,6 @@
 (() => {
+    let markdownFallbackLogged = false;
+
     function escapeHtml(value) {
         return String(value ?? '')
             .replace(/&/g, '&amp;')
@@ -12,92 +14,101 @@
         return escapeHtml(value).replace(/`/g, '&#96;');
     }
 
-    function sanitizeHttpUrl(value) {
-        try {
-            const parsed = new URL(String(value ?? ''));
-            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-                return null;
+    function renderMarkdownFallback(text) {
+        const lines = text.split('\n');
+        const out = [];
+        let inList = false;
+
+        for (const rawLine of lines) {
+            // Heading
+            const headingMatch = rawLine.match(/^(#{1,6})\s+(.*)/);
+            if (headingMatch) {
+                if (inList) { out.push('</ul>'); inList = false; }
+                const level = headingMatch[1].length;
+                out.push(`<h${level}>${inlineMarkdown(headingMatch[2])}</h${level}>`);
+                continue;
             }
-            return parsed.toString();
-        } catch (_) {
-            return null;
+            // Horizontal rule: 3+ identical characters (-, *, or _), optionally separated by spaces
+            if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(rawLine)) {
+                if (inList) { out.push('</ul>'); inList = false; }
+                out.push('<hr>');
+                continue;
+            }
+            // Unordered list item
+            const listMatch = rawLine.match(/^[ \t]*[-*+]\s+(.*)/);
+            if (listMatch) {
+                if (!inList) { out.push('<ul>'); inList = true; }
+                out.push(`<li>${inlineMarkdown(listMatch[1])}</li>`);
+                continue;
+            }
+            if (inList) { out.push('</ul>'); inList = false; }
+            // Blank line → paragraph break
+            if (!rawLine.trim()) {
+                out.push('<br>');
+            } else {
+                out.push(`<p>${inlineMarkdown(rawLine)}</p>`);
+            }
         }
+        if (inList) out.push('</ul>');
+        return out.join('');
     }
 
-    function renderInlineMarkdown(input) {
-        const codeTokens = [];
-        const linkTokens = [];
-        let text = String(input ?? '');
-
-        text = text.replace(/`([^`]+)`/g, (_, codeValue) => {
-            const token = `__MD_CODE_${codeTokens.length}__`;
-            codeTokens.push(`<code>${escapeHtml(codeValue)}</code>`);
-            return token;
+    function inlineMarkdown(text) {
+        // Extract inline code spans first (before HTML-escaping) so backticks
+        // and their contents are not touched by subsequent passes.
+        const codePlaceholders = [];
+        let s = text.replace(/`([^`]+)`/g, (_, c) => {
+            const idx = codePlaceholders.length;
+            codePlaceholders.push(`<code>${escapeHtml(c)}</code>`);
+            return `\x00code${idx}\x00`;
         });
 
-        text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) => {
-            const safeUrl = sanitizeHttpUrl(url);
-            if (!safeUrl) {
-                return escapeHtml(`[${label}](${url})`);
-            }
-            const token = `__MD_LINK_${linkTokens.length}__`;
-            linkTokens.push(`<a href="${escapeHtmlAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`);
-            return token;
+        s = escapeHtml(s);
+
+        // Bold must come before italic so **word** isn't mis-parsed as *em* by the italic pass.
+        s = s.replace(/\*\*(.+?)\*\*|__(.+?)__/g, (_, a, b) => `<strong>${a ?? b}</strong>`);
+        s = s.replace(/\*(.+?)\*|_(.+?)_/g, (_, a, b) => `<em>${a ?? b}</em>`);
+
+        // Links [label](url) — label is already HTML-escaped; validate URL protocol explicitly.
+        s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, rawUrl) => {
+            let safeUrl = '#';
+            try {
+                const parsed = new URL(rawUrl);
+                if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+                    safeUrl = parsed.href;
+                }
+            } catch (_) { /* invalid URL — keep '#' */ }
+            return `<a href="${escapeHtmlAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
         });
 
-        text = escapeHtml(text);
-        text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-        text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-        text = text.replace(/__MD_CODE_(\d+)__/g, (match, index) => codeTokens[Number(index)] || match);
-        text = text.replace(/__MD_LINK_(\d+)__/g, (match, index) => linkTokens[Number(index)] || match);
-        return text;
+        // Restore inline code placeholders.
+        s = s.replace(/\x00code(\d+)\x00/g, (_, i) => codePlaceholders[Number(i)]);
+        return s;
     }
 
     function renderMarkdown(markdownText) {
         const text = String(markdownText ?? '').replace(/\r\n/g, '\n');
         if (!text.trim()) return '';
-
-        const blocks = text.split(/\n{2,}/);
-        const htmlBlocks = blocks.map(rawBlock => {
-            const block = rawBlock.trim();
-            if (!block) return '';
-
-            const lines = block.split('\n').filter(line => line.trim() !== '');
-            if (lines.length === 0) return '';
-
-            if (lines.every(line => /^\s*[-*]\s+/.test(line))) {
-                const items = lines
-                    .map(line => line.replace(/^\s*[-*]\s+/, '').trim())
-                    .map(item => `<li>${renderInlineMarkdown(item)}</li>`)
-                    .join('');
-                return `<ul>${items}</ul>`;
+        if (!window.marked || !window.filterXSS) {
+            if (!markdownFallbackLogged) {
+                const missingLibraries = [
+                    !window.marked ? 'marked' : null,
+                    !window.filterXSS ? 'xss' : null
+                ].filter(Boolean).join(', ');
+                console.warn(`Markdown fallback enabled. Missing libraries: ${missingLibraries}.`);
+                markdownFallbackLogged = true;
             }
+            return renderMarkdownFallback(text);
+        }
 
-            if (lines.every(line => /^\s*\d+\.\s+/.test(line))) {
-                const items = lines
-                    .map(line => line.replace(/^\s*\d+\.\s+/, '').trim())
-                    .map(item => `<li>${renderInlineMarkdown(item)}</li>`)
-                    .join('');
-                return `<ol>${items}</ol>`;
-            }
-
-            if (lines.length === 1) {
-                const headingMatch = lines[0].match(/^(#{1,6})\s+(.*)$/);
-                if (headingMatch) {
-                    const level = headingMatch[1].length;
-                    return `<h${level}>${renderInlineMarkdown(headingMatch[2].trim())}</h${level}>`;
-                }
-
-                const quoteMatch = lines[0].match(/^>\s?(.*)$/);
-                if (quoteMatch) {
-                    return `<blockquote>${renderInlineMarkdown(quoteMatch[1].trim())}</blockquote>`;
-                }
-            }
-
-            return `<p>${lines.map(line => renderInlineMarkdown(line.trim())).join('<br>')}</p>`;
+        // gfm: GitHub Flavored Markdown (tables, strikethrough, etc.)
+        // breaks: single newlines become <br> tags
+        const rawHtml = window.marked.parse(text, {
+            gfm: true,
+            breaks: true
         });
 
-        return htmlBlocks.join('');
+        return window.filterXSS(rawHtml);
     }
 
     window.markdownUtils = {
