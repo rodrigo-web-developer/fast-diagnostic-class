@@ -13,6 +13,7 @@ Fast Diagnostic Class allows teachers to deploy local network tests to their cla
 
 Features:
 - Create quick questions: description, weight, alternatives, and the correct answer
+- Markdown support in question descriptions (create preview + rendered display for students/dashboard)
 - Tag questions by area: Math, Logic, History, etc.
 - Add "Don't Know" option automatically: creates a form with all questions marked as "I Don't Know" to check baseline knowledge without false positives
 - Upload a JSON file with all the questions
@@ -71,13 +72,13 @@ Create form:
     "questions": [{
         "idk": true, // add "I Don't Know" alternative for better precision on results
         "alternatives": ["2", "4", "8", "NDA"],
-        "description": "How much is 2 + 2?",
+        "description": "## Basic addition\nHow much is **2 + 2**?",
         "correct": 1, // index-based answer
         "tags": ["math", "sum"] // tag answer for better dashboard results
     },{
         "idk": true,
         "alternatives": ["2", "4", "8", "NDA"],
-        "description": "How much is 2 x 2?",
+        "description": "How much is *2 x 2*?",
         "correct": 1,
         "tags": ["math", "mult"] // tag answer for better dashboard results
     }],

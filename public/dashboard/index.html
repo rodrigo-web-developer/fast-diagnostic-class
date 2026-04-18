@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard · Fast Diagnostic Class</title>
     <link rel="stylesheet" href="/styles.css">
+    <script src="/markdown.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -133,6 +134,7 @@
         let tagScoreChart = null;
         let tagCountChart = null;
         let currentSort = { column: 'date', direction: 'desc' };
+        const markdownUtils = window.markdownUtils;
 
         function renderMetrics(stats) {
             const metricsGrid = document.getElementById('metricsGrid');
@@ -309,7 +311,7 @@
                 return `
                     <tr>
                         <td>${q.questionIndex + 1}</td>
-                        <td>${q.description}</td>
+                        <td><div class="markdown-content">${markdownUtils.renderMarkdown(q.description || '')}</div></td>
                         <td style="color: #10b981; font-weight: bold;">${q.correctCount} (${correctPercentage}%)</td>
                         <td>${q.wrongCount}</td>
                         <td>${q.idkCount}</td>
@@ -323,7 +325,7 @@
                 return `
                     <tr>
                         <td>${q.questionIndex + 1}</td>
-                        <td>${q.description}</td>
+                        <td><div class="markdown-content">${markdownUtils.renderMarkdown(q.description || '')}</div></td>
                         <td>${q.correctCount}</td>
                         <td style="color: #ef4444; font-weight: bold;">${q.wrongCount} (${wrongPercentage}%)</td>
                         <td>${q.idkCount}</td>
