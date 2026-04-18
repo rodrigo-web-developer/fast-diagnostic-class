@@ -117,7 +117,7 @@ Send answer:
 
 - **Express.js**: Web server framework
 - **Marked**: Markdown parser for question descriptions
-- **DOMPurify**: HTML sanitization for rendered markdown
+- **xss**: HTML sanitization for rendered markdown
 - **Chart.js**: Data visualization library
 - **Local persistence**: Local files for data storage
 - **Vanilla JavaScript**: Client-side functionality

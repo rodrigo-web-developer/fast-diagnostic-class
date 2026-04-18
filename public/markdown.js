@@ -17,11 +17,11 @@
     function renderMarkdown(markdownText) {
         const text = String(markdownText ?? '').replace(/\r\n/g, '\n');
         if (!text.trim()) return '';
-        if (!window.marked || !window.DOMPurify) {
+        if (!window.marked || !window.filterXSS) {
             if (!markdownFallbackLogged) {
                 const missingLibraries = [
                     !window.marked ? 'marked' : null,
-                    !window.DOMPurify ? 'DOMPurify' : null
+                    !window.filterXSS ? 'xss' : null
                 ].filter(Boolean).join(', ');
                 console.warn(`Markdown fallback enabled. Missing libraries: ${missingLibraries}.`);
                 markdownFallbackLogged = true;
@@ -34,7 +34,7 @@
             breaks: true
         });
 
-        return window.DOMPurify.sanitize(rawHtml);
+        return window.filterXSS(rawHtml);
     }
 
     window.markdownUtils = {
