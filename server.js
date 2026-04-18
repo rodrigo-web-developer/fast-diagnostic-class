@@ -13,13 +13,15 @@ let domPurifyBundle = null;
 
 try {
     markedBundle = fsSync.readFileSync(markedBundlePath, 'utf8');
-} catch (_) {
+} catch (error) {
+    console.error('Unable to load marked bundle:', error.message);
     markedBundle = null;
 }
 
 try {
     domPurifyBundle = fsSync.readFileSync(domPurifyBundlePath, 'utf8');
-} catch (_) {
+} catch (error) {
+    console.error('Unable to load DOMPurify bundle:', error.message);
     domPurifyBundle = null;
 }
 
